@@ -25,6 +25,8 @@ namespace Pfim.Benchmarks
         public void SetupData()
         {
             data = File.ReadAllBytes(Path.Combine("bench", Payload));
+
+            Aardvark.Base.Aardvark.Init();
             DS.Bootstrap.Init();
         }
 
@@ -41,7 +43,7 @@ namespace Pfim.Benchmarks
         public FreeImageBitmap FreeImage() => FreeImageAPI.FreeImageBitmap.FromStream(new MemoryStream(data));
 
         [Benchmark]
-        public int ImageMagick()
+        public uint ImageMagick()
         {
             var settings = new MagickReadSettings {Format = MagickFormat.Tga};
             using (var image = new MagickImage(new MemoryStream(data), settings))

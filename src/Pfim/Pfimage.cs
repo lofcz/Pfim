@@ -4,9 +4,8 @@ using System.IO;
 namespace Pfim
 {
     /// <summary>Decodes images into a uniform structure</summary>
-    public static class Pfim
+    public static class Pfimage
     {
-#if NETSTANDARD1_3
         public static IImage FromFile(string path)
         {
             return FromFile(path, new PfimConfig());
@@ -26,7 +25,6 @@ namespace Pfim
                 return FromStream(fs, config);
             }
         }
-#endif
 
         public static IImage FromStream(Stream stream)
         {
@@ -39,11 +37,7 @@ namespace Pfim
         public static IImage FromStream(Stream stream, PfimConfig config)
         {
             byte[] magic = new byte[4];
-            if (stream.Read(magic, 0, 4) != 4)
-            {
-                throw new ArgumentException("stream must contain magic header", nameof(stream));
-            }
-
+            Util.ReadExactly(stream, magic, 0, magic.Length);
             if (magic[0] == 0x44 && magic[1] == 0x44 && magic[2] == 0x53 && magic[3] == 0x20)
             {
                 return Dds.CreateSkipMagic(stream, config);

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pfim.dds;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -16,10 +17,7 @@ namespace Pfim
         public unsafe DdsHeaderDxt10(Stream stream)
         {
             byte[] buffer = new byte[5 * 4];
-            if (stream.Read(buffer, 0, buffer.Length) != buffer.Length)
-            {
-                throw new Exception($"Need at least {buffer.Length} bytes for a valid DDS DX10 header");
-            }
+            Util.ReadExactly(stream, buffer, 0, buffer.Length);
 
             fixed (byte* bufferPtr = buffer)
             {
@@ -42,15 +40,37 @@ namespace Pfim
                 case DxgiFormat.BC1_UNORM:
                     return new Dxt1Dds(header, config);
 
+                case DxgiFormat.BC2_TYPELESS:
+                case DxgiFormat.BC2_UNORM:
+                case DxgiFormat.BC2_UNORM_SRGB:
+                    return new Dxt3Dds(header, config);
+
                 case DxgiFormat.BC3_TYPELESS:
                 case DxgiFormat.BC3_UNORM:
                 case DxgiFormat.BC3_UNORM_SRGB:
-                    return new Dxt3Dds(header, config);
+                    return new Dxt5Dds(header, config);
 
-                case DxgiFormat.BC5_SNORM:
+                case DxgiFormat.BC4_TYPELESS:
+                case DxgiFormat.BC4_UNORM:
+                    return new Bc4Dds(header, config);
+                case DxgiFormat.BC4_SNORM:
+                    return new Bc4sDds(header, config);
+
                 case DxgiFormat.BC5_TYPELESS:
                 case DxgiFormat.BC5_UNORM:
-                    return new Dxt5Dds(header, config);
+                    return new Bc5Dds(header, config);
+                case DxgiFormat.BC5_SNORM:
+                    return new Bc5sDds(header, config);
+
+                case DxgiFormat.BC6H_TYPELESS:
+                case DxgiFormat.BC6H_UF16:
+                case DxgiFormat.BC6H_SF16:
+                    return new Bc6hDds(header, config);
+
+                case DxgiFormat.BC7_TYPELESS:
+                case DxgiFormat.BC7_UNORM:
+                case DxgiFormat.BC7_UNORM_SRGB:
+                    return new Bc7Dds(header, config);
 
                 case DxgiFormat.R8G8B8A8_TYPELESS:
                 case DxgiFormat.R8G8B8A8_UNORM:
@@ -62,7 +82,15 @@ namespace Pfim
                 case DxgiFormat.B8G8R8A8_TYPELESS:
                 case DxgiFormat.B8G8R8A8_UNORM:
                 case DxgiFormat.B8G8R8A8_UNORM_SRGB:
+                case DxgiFormat.B8G8R8X8_UNORM_SRGB:
                     return new UncompressedDds(header, config, 32, false);
+
+                case DxgiFormat.B5G5R5A1_UNORM:
+                    return new UncompressedDds(header, config, 16, false);
+
+                case DxgiFormat.R16_FLOAT:
+                case DxgiFormat.R32_FLOAT:
+                    return new UncompressedDds(header, config);
 
                 case DxgiFormat.UNKNOWN:
                 case DxgiFormat.R32G32B32A32_TYPELESS:
@@ -99,7 +127,6 @@ namespace Pfim
                 case DxgiFormat.R16G16_SINT:
                 case DxgiFormat.R32_TYPELESS:
                 case DxgiFormat.D32_FLOAT:
-                case DxgiFormat.R32_FLOAT:
                 case DxgiFormat.R32_UINT:
                 case DxgiFormat.R32_SINT:
                 case DxgiFormat.R24G8_TYPELESS:
@@ -112,7 +139,6 @@ namespace Pfim
                 case DxgiFormat.R8G8_SNORM:
                 case DxgiFormat.R8G8_SINT:
                 case DxgiFormat.R16_TYPELESS:
-                case DxgiFormat.R16_FLOAT:
                 case DxgiFormat.D16_UNORM:
                 case DxgiFormat.R16_UNORM:
                 case DxgiFormat.R16_UINT:
@@ -128,19 +154,9 @@ namespace Pfim
                 case DxgiFormat.R9G9B9E5_SHAREDEXP:
                 case DxgiFormat.R8G8_B8G8_UNORM:
                 case DxgiFormat.G8R8_G8B8_UNORM:
-                case DxgiFormat.BC2_TYPELESS:
-                case DxgiFormat.BC2_UNORM:
-                case DxgiFormat.BC2_UNORM_SRGB:
-                case DxgiFormat.BC4_TYPELESS:
                 case DxgiFormat.B8G8R8X8_UNORM:
                 case DxgiFormat.R10G10B10_XR_BIAS_A2_UNORM:
                 case DxgiFormat.B8G8R8X8_TYPELESS:
-                case DxgiFormat.B8G8R8X8_UNORM_SRGB:
-                case DxgiFormat.BC6H_TYPELESS:
-                case DxgiFormat.BC6H_UF16:
-                case DxgiFormat.BC6H_SF16:
-                case DxgiFormat.BC7_TYPELESS:
-                case DxgiFormat.BC7_UNORM:
                 case DxgiFormat.NV12:
                 case DxgiFormat.P010:
                 case DxgiFormat.P016:
@@ -158,7 +174,7 @@ namespace Pfim
                 case DxgiFormat.V208:
                 case DxgiFormat.V408:
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentException($"Unimplemented DXGI format: {DxgiFormat}");
             }
         }
     }

@@ -17,6 +17,16 @@ namespace Pfim
         None = 0,
 
         /// <summary>
+        /// Uncompressed single channel 16-bit floating-point format.
+        /// </summary>
+        D3DFMT_R16F = 111,
+
+        /// <summary>
+        /// Uncompressed single channel 32-bit floating-point format.
+        /// </summary>
+        D3DFMT_R32F = 114,
+
+        /// <summary>
         /// <see cref="Dxt1Dds"/>. Also known as BC1
         /// </summary>
         D3DFMT_DXT1 = 827611204,
@@ -27,23 +37,29 @@ namespace Pfim
         D3DFMT_DXT2 = 844388420,
 
         /// <summary>
-        /// <see cref="Dxt3Dds"/>. Also known as BC3
+        /// <see cref="Dxt3Dds"/>. Also known as BC2
         /// </summary>
         D3DFMT_DXT3 = 861165636,
 
         /// <summary>
-        /// Not supported. Also known as BC4
+        /// Not supported. Also known as BC3
         /// </summary>
         D3DFMT_DXT4 = 877942852,
 
         /// <summary>
-        /// <see cref="Dxt5Dds"/>. Also known as BC5
+        /// <see cref="Dxt5Dds"/>. Also known as BC3
         /// </summary>
         D3DFMT_DXT5 = 894720068,
 
         DX10 = 808540228,
 
-        ATI2 = 843666497
+        ATI1 = 826889281,
+        BC4U = 1429488450,
+        BC4S = 1395934018,
+
+        ATI2 = 843666497,
+        BC5U = 1429553986,
+        BC5S = 1395999554
     }
 
     /// <summary>Flags to indicate which members contain valid data.</summary>
@@ -219,11 +235,7 @@ namespace Pfim
             var headerSize = skipMagic ? SIZE : SIZE + 4;
             byte[] buffer = new byte[headerSize];
             Reserved1 = new uint[11];
-            int bufferSize = stream.Read(buffer, 0, headerSize);
-            if (bufferSize != headerSize)
-            {
-                throw new Exception($"Need at least {SIZE + 4} bytes for a valid DDS header");
-            }
+            Util.ReadExactly(stream, buffer, 0, headerSize);
 
             fixed (byte* bufferPtr = buffer)
             {

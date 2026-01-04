@@ -9,7 +9,8 @@ namespace Pfim
     /// </summary>
     public class CompressedTarga : IDecodeTarga
     {
-#if NETSTANDARD1_3
+        internal static readonly CompressedTarga Instance = new CompressedTarga();
+
         unsafe byte[] FastPass(byte[] data, ArraySegment<byte> arr, TargaHeader header, int stride, long arrPosition)
         {
             var dataLen = header.Height * stride;
@@ -75,7 +76,6 @@ namespace Pfim
 
             return data;
         }
-#endif
 
         /// <summary>Fills data starting from the bottom left</summary>
         public byte[] BottomLeft(Stream str, TargaHeader header, PfimConfig config)
@@ -84,12 +84,10 @@ namespace Pfim
             var dataLen = header.Height * stride;
             var data = config.Allocator.Rent(dataLen);
 
-#if NETSTANDARD1_3
             if (str is MemoryStream s && s.TryGetBuffer(out var arr))
             {
                 return FastPass(data, arr, header, stride, s.Position);
             }
-#endif
 
             int dataIndex = dataLen - stride;
             int bytesPerPixel = header.PixelDepthBytes;
@@ -99,11 +97,15 @@ namespace Pfim
             // If our buffer doesn't have enough to decode the maximum number of bytes,
             // fetch another batch of bytes from the stream.
             int maxRead = bytesPerPixel * 128 + 1;
+            if (config.BufferSize < maxRead)
+            {
+                throw new ArgumentException($"Buffer size not big enough to read {maxRead} bytes", nameof(config.BufferSize));
+            }
 
             byte[] filebuffer = config.Allocator.Rent(config.BufferSize);
             try
             {
-                int workingSize = str.Read(filebuffer, 0, config.BufferSize);
+                int workingSize = Util.ReadFill(str, filebuffer, 0, config.BufferSize);
                 while (dataIndex >= 0)
                 {
                     int colIndex = 0;
@@ -171,9 +173,13 @@ namespace Pfim
             // If our buffer doesn't have enough to decode the maximum number of bytes,
             // fetch another batch of bytes from the stream.
             int maxRead = bytesPerPixel * 128 + 1;
+            if (config.BufferSize < maxRead)
+            {
+                throw new ArgumentException($"Buffer size not big enough to read {maxRead} bytes", nameof(config.BufferSize));
+            }
 
             byte[] filebuffer = config.Allocator.Rent(config.BufferSize);
-            int workingSize = str.Read(filebuffer, 0, config.BufferSize);
+            int workingSize = Util.ReadFill(str, filebuffer, 0, config.BufferSize);
 
             try
             {

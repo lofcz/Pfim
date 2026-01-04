@@ -2,7 +2,7 @@
 {
     public class Dxt1Dds : CompressedDds
     {
-        private const int PIXEL_DEPTH = 3;
+        private const int PIXEL_DEPTH = 4;
         private const int DIV_SIZE = 4;
 
         public Dxt1Dds(DdsHeader header, PfimConfig config) : base(header, config)
@@ -12,12 +12,10 @@
         protected override byte PixelDepthBytes => PIXEL_DEPTH;
         protected override byte DivSize => DIV_SIZE;
         protected override byte CompressedBytesPerBlock => 8;
-        public override ImageFormat Format => ImageFormat.Rgb24;
+        public override ImageFormat Format => ImageFormat.Rgba32;
         public override int BitsPerPixel => 8 * PIXEL_DEPTH;
 
-        private readonly Color888[] colors = new Color888[4];
-
-        protected override int Decode(byte[] stream, byte[] data, int streamIndex, uint dataIndex, uint stride)
+        protected override unsafe int Decode(byte[] stream, byte[] data, int streamIndex, uint dataIndex, uint stride)
         {
             // Colors are stored in a pair of 16 bits
             ushort color0 = stream[streamIndex++];
@@ -26,44 +24,28 @@
             ushort color1 = (stream[streamIndex++]);
             color1 |= (ushort)(stream[streamIndex++] << 8);
 
-            // Extract R5G6B5 (in that order)
-            colors[0].r = (byte)((color0 & 0x1f));
-            colors[0].g = (byte)((color0 & 0x7E0) >> 5);
-            colors[0].b = (byte)((color0 & 0xF800) >> 11);
-            colors[0].r = (byte)(colors[0].r << 3 | colors[0].r >> 2);
-            colors[0].g = (byte)(colors[0].g << 2 | colors[0].g >> 3);
-            colors[0].b = (byte)(colors[0].b << 3 | colors[0].b >> 2);
-
-            colors[1].r = (byte)((color1 & 0x1f));
-            colors[1].g = (byte)((color1 & 0x7E0) >> 5);
-            colors[1].b = (byte)((color1 & 0xF800) >> 11);
-            colors[1].r = (byte)(colors[1].r << 3 | colors[1].r >> 2);
-            colors[1].g = (byte)(colors[1].g << 2 | colors[1].g >> 3);
-            colors[1].b = (byte)(colors[1].b << 3 | colors[1].b >> 2);
+            // Extract R5G6B5
+            var c0 = ColorFloatRgb.FromRgb565(color0);
+            var c1 = ColorFloatRgb.FromRgb565(color1);
 
             // Used the two extracted colors to create two new colors that are
             // slightly different.
+            (var i0, var i1) = (c0.As8BitA(), c1.As8BitA());
+            Color8888* colors = stackalloc Color8888[4];
             if (color0 > color1)
             {
-                colors[2].r = (byte)((2 * colors[0].r + colors[1].r) / 3);
-                colors[2].g = (byte)((2 * colors[0].g + colors[1].g) / 3);
-                colors[2].b = (byte)((2 * colors[0].b + colors[1].b) / 3);
-
-                colors[3].r = (byte)((colors[0].r + 2 * colors[1].r) / 3);
-                colors[3].g = (byte)((colors[0].g + 2 * colors[1].g) / 3);
-                colors[3].b = (byte)((colors[0].b + 2 * colors[1].b) / 3);
+                colors[0] = i0;
+                colors[1] = i1;
+                colors[2] = c0.Lerp(c1, 1f / 3).As8BitA();
+                colors[3] = c0.Lerp(c1, 2f / 3).As8BitA();
             }
             else
             {
-                colors[2].r = (byte)((colors[0].r + colors[1].r) / 2);
-                colors[2].g = (byte)((colors[0].g + colors[1].g) / 2);
-                colors[2].b = (byte)((colors[0].b + colors[1].b) / 2);
-
-                colors[3].r = 0;
-                colors[3].g = 0;
-                colors[3].b = 0;
+                colors[0] = i0;
+                colors[1] = i1;
+                colors[2] = c0.Lerp(c1, 0.5f).As8BitA();
+                colors[3] = default;
             }
-
 
             for (int i = 0; i < 4; i++)
             {
@@ -80,6 +62,7 @@
                     data[dataIndex++] = col.r;
                     data[dataIndex++] = col.g;
                     data[dataIndex++] = col.b;
+                    data[dataIndex++] = col.a;
                 }
 
                 // Jump down a row and start at the beginning of the row

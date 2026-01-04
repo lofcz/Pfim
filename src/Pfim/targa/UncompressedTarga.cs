@@ -8,28 +8,28 @@ namespace Pfim
     /// </summary>
     public class UncompressedTarga : IDecodeTarga
     {
+        internal static readonly UncompressedTarga Instance = new UncompressedTarga();
+
         /// <summary>Fills data starting from the bottom left</summary>
         public byte[] BottomLeft(Stream str, TargaHeader header, PfimConfig config)
         {
             var stride = Util.Stride(header.Width, header.PixelDepthBits);
             var len = header.Height * stride;
             var data = config.Allocator.Rent(len);
-            var rowBits = header.PixelDepthBits * header.Width;
-            InnerBottomLeft(str, config, data, len, stride, rowBits);
+            var width = header.PixelDepthBytes * header.Width;
+            InnerBottomLeft(str, config, data, len, stride, width);
             return data;
         }
 
-#if NETSTANDARD1_3
-        private static void InnerBottomLeft(Stream str, PfimConfig config, byte[] data, int dataLen, int stride, int rowBits)
+        private static void InnerBottomLeft(Stream str, PfimConfig config, byte[] data, int dataLen, int stride, int width)
         {
             if (str is MemoryStream s && s.TryGetBuffer(out var arr))
             {
                 int dataIndex = dataLen - stride;
-                int rowBytes = rowBits / 8;
-                int totalRows = dataLen / rowBytes;
-                for (int i = 0; i < totalRows; i++, dataIndex -= stride)
+
+                for (int i = 0; dataIndex >= 0; i++, dataIndex -= stride)
                 {
-                    Buffer.BlockCopy(arr.Array, (int) (s.Position + i * rowBytes), data, dataIndex, rowBytes);
+                    Buffer.BlockCopy(arr.Array, (int) (s.Position + i * width), data, dataIndex, width);
                 }
             }
             else
@@ -37,7 +37,7 @@ namespace Pfim
                 var buffer = config.Allocator.Rent(config.BufferSize);
                 try
                 {
-                    Util.FillBottomLeft(str, data, dataLen, rowBits / 8, stride, buffer, config.BufferSize);
+                    Util.FillBottomLeft(str, data, dataLen, width, stride, buffer, config.BufferSize);
                 }
                 finally
                 {
@@ -45,20 +45,6 @@ namespace Pfim
                 }
             }
         }
-#else
-        private static void InnerBottomLeft(Stream str, PfimConfig config, byte[] data, int dataLen, int stride, int rowBits)
-        {
-            var buffer = config.Allocator.Rent(config.BufferSize);
-            try
-            {
-                Util.FillBottomLeft(str, data, dataLen, rowBits / 8, stride, buffer, config.BufferSize);
-            }
-            finally
-            {
-                config.Allocator.Return(buffer);
-            }
-        }
-#endif
 
         public byte[] BottomRight(Stream str, TargaHeader header, PfimConfig config)
         {

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.0;netstandard1.3</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Product>Pfim</Product>
@@ -13,18 +13,18 @@
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://nickbabcock.github.io/Pfim/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nickbabcock/Pfim</RepositoryUrl>
-    <PackageIconUrl>https://nickbabcock.github.io/Pfim/logo.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/nickbabcock/Pfim/master/analysis/logo.png?raw=true</PackageIconUrl>
+
+    <AssemblyOriginatorKeyFile>..\pfim.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
 
     <Major>0</Major>
-    <Minor>6</Minor>
-    <Revision>0</Revision>
+    <Minor>11</Minor>
+    <Revision>4</Revision>
     <AssemblyVersion>$(Major).$(Minor).$(Revision)</AssemblyVersion>
     <AssemblyFileVersion>$(Major).$(Minor).$(Revision)</AssemblyFileVersion>
     <InformationalVersion>$(Major).$(Minor).$(Revision)</InformationalVersion>
     <Version>$(Major).$(Minor).$(Revision)</Version>
     <FileVersion>$(Major).$(Minor).$(Revision)</FileVersion>
   </PropertyGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
-    <PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
-  </ItemGroup>
 </Project>

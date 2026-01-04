@@ -2,9 +2,6 @@
 {
     public class Bc5Dds : CompressedDds
     {
-        private readonly byte[] _firstGradient = new byte[8];
-        private readonly byte[] _secondGradient = new byte[8];
-
         public Bc5Dds(DdsHeader header, PfimConfig config) : base(header, config)
         {
         }
@@ -15,8 +12,11 @@
         protected override byte DivSize => 4;
         protected override byte CompressedBytesPerBlock => 16;
 
-        protected override int Decode(byte[] stream, byte[] data, int streamIndex, uint dataIndex, uint stride)
+        protected override unsafe int Decode(byte[] stream, byte[] data, int streamIndex, uint dataIndex, uint stride)
         {
+            byte* _firstGradient = stackalloc byte[8];
+            byte* _secondGradient = stackalloc byte[8];
+
             streamIndex = ExtractGradient(_firstGradient, stream, streamIndex);
             ulong firstCodes = stream[streamIndex++];
             firstCodes |= ((ulong)stream[streamIndex++] << 8);
@@ -40,7 +40,7 @@
                     // 3 bits determine alpha index to use
                     byte firstIndex = (byte)((firstCodes >> (alphaShift + 3 * j)) & 0x07);
                     byte secondIndex = (byte)((secondCodes >> (alphaShift + 3 * j)) & 0x07);
-                    dataIndex++; // skip blue
+                    data[dataIndex++] = 0; // skip blue
                     data[dataIndex++] = _secondGradient[secondIndex];
                     data[dataIndex++] = _firstGradient[firstIndex];
                 }
@@ -50,7 +50,7 @@
             return streamIndex;
         }
 
-        internal static int ExtractGradient(byte[] gradient, byte[] stream, int bIndex)
+        internal static unsafe int ExtractGradient(byte* gradient, byte[] stream, int bIndex)
         {
             byte endpoint0;
             byte endpoint1;

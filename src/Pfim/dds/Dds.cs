@@ -80,6 +80,8 @@ namespace Pfim
                     break;
 
                 case CompressionAlgorithm.None:
+                case CompressionAlgorithm.D3DFMT_R16F:
+                case CompressionAlgorithm.D3DFMT_R32F:
                     dds = new UncompressedDds(header, config);
                     break;
 
@@ -131,8 +133,20 @@ namespace Pfim
                     dds.Header10 = header10;
                     break;
 
+                case CompressionAlgorithm.ATI1:
+                case CompressionAlgorithm.BC4U:
+                    dds = new Bc4Dds(header, config);
+                    break;
+                case CompressionAlgorithm.BC4S:
+                    dds = new Bc4sDds(header, config);
+                    break;
+
                 case CompressionAlgorithm.ATI2:
+                case CompressionAlgorithm.BC5U:
                     dds = new Bc5Dds(header, config);
+                    break;
+                case CompressionAlgorithm.BC5S:
+                    dds = new Bc5sDds(header, config);
                     break;
 
                 default:
@@ -148,6 +162,8 @@ namespace Pfim
         public void ApplyColorMap()
         {
         }
+
+        public abstract MipMapOffset[] MipMaps { get; }
 
         public void Dispose()
         {
